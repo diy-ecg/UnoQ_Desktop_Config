@@ -4,40 +4,40 @@ set -euo pipefail
 CON_NAME="eduroam"
 SSID="eduroam"
 
-echo "=== eduroam Einrichtung ==="
+echo "=== eduroam Wi-Fi Setup ==="
 
-# 1. WLAN-Interface automatisch ermitteln (Fallback: wlan0)
+# 1. Automatically detect Wi-Fi interface (fallback: wlan0)
 IFNAME=$(nmcli -t -f DEVICE,TYPE device status | awk -F: '$2=="wifi" {print $1; exit}')
 IFNAME=${IFNAME:-wlan0}
-echo "Verwende WLAN-Interface: $IFNAME"
+echo "Using Wi-Fi interface: $IFNAME"
 
-# 2. E-Mail / Benutzerkennung abfragen
-read -r -p "E-Mail-Adresse (z.B. name@hs-koblenz.de): " EMAIL
+# 2. Prompt for email / user identity
+read -r -p "Email address (e.g. user@hs-koblenz.de): " EMAIL
 if [[ -z "$EMAIL" || "$EMAIL" != *"@"* ]]; then
-    echo "Fehler: Bitte eine gültige E-Mail-Adresse mit '@' eingeben." >&2
+    echo "Error: Please enter a valid email address containing '@'." >&2
     exit 1
 fi
 
-# Domain für anonymous-identity automatisch aus der E-Mail extrahieren
+# Extract domain from email for anonymous-identity
 DOMAIN="${EMAIL#*@}"
 ANON_ID="anonymous@${DOMAIN}"
 
-# 3. Passwort verdeckt abfragen (-r verhindert Backslash-Interpretation, -s blendet Eingabe aus)
-read -r -s -p "Passwort: " PASSWORD
+# 3. Prompt for password silently (-r disables backslash escaping, -s hides input)
+read -r -s -p "Password: " PASSWORD
 echo ""
 if [[ -z "$PASSWORD" ]]; then
-    echo "Fehler: Das Passwort darf nicht leer sein." >&2
+    echo "Error: Password cannot be empty." >&2
     exit 1
 fi
 
-# 4. Falls bereits eine eduroam-Verbindung existiert, vorher entfernen
+# 4. Remove existing eduroam connection profile if present
 if nmcli -t -f NAME connection show | grep -Fxq "$CON_NAME"; then
-    echo "Altes Profil '$CON_NAME' wird entfernt..."
+    echo "Removing existing '$CON_NAME' profile..."
     sudo nmcli connection delete "$CON_NAME" >/dev/null
 fi
 
-# 5. Neue Verbindung anlegen
-echo "Erstelle eduroam-Profil für $EMAIL (Anonym: $ANON_ID)..."
+# 5. Create new connection profile
+echo "Creating eduroam profile for $EMAIL (anonymous identity: $ANON_ID)..."
 sudo nmcli connection add \
   type wifi \
   con-name "$CON_NAME" \
@@ -51,8 +51,8 @@ sudo nmcli connection add \
   802-1x.system-ca-certs false \
   802-1x.password "$PASSWORD" >/dev/null
 
-# 6. Verbindung aktivieren
-echo "Verbinde mit $CON_NAME..."
+# 6. Activate connection
+echo "Connecting to $CON_NAME..."
 sudo nmcli connection up "$CON_NAME"
 
-echo "Erfolgreich mit eduroam verbunden!"
+echo "Successfully connected to eduroam!"

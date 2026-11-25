@@ -1,69 +1,72 @@
-# eduroam Setup für Arduino Uno Q (Debian Trixie)
+# Arduino Uno Q Configuration (Debian Trixie)
 
-Dieses Repository enthält ein Bash-Skript ([`setup_eduroam.sh`](./setup_eduroam.sh)), mit dem die **eduroam**-WLAN-Verbindung auf dem **Arduino Uno Q** unter Linux (Debian Trixie mit NetworkManager / `nmcli`) schnell und interaktiv eingerichtet werden kann.
+This repository contains configuration files and helper scripts for setting up an **Arduino Uno Q** running Linux (Debian Trixie):
 
-## Funktionen
-
-* **Interaktive Abfrage:** Fragt nur nach der Hochschul-E-Mail-Adresse und dem Passwort.
-* **Sichere Passworteingabe:** Das Passwort wird verdeckt eingegeben und unterstützt problemlos Sonderzeichen (wie `!`, `$`, `'`, `"`).
-* **Automatische Domain-Erkennung:** Erzeugt die `anonymous-identity` (z. B. `anonymous@hs-koblenz.de`) automatisch aus der eingegebenen E-Mail-Adresse.
-* **Automatische WLAN-Interface-Erkennung:** Ermittelt das WLAN-Interface automatisch über `nmcli` (Fallback auf `wlan0`).
-* **Saubere Neueinrichtung:** Entfernt ein eventuell bereits vorhandenes `eduroam`-Profil vor dem Anlegen, um Duplikate zu vermeiden.
+1. **[`setup_eduroam.sh`](./setup_eduroam.sh)**: Interactive Bash script to easily configure and connect to the **eduroam** Wi-Fi network via NetworkManager (`nmcli`).
+2. **[`90-monitor-rotate.conf`](./90-monitor-rotate.conf)**: X11 configuration file to rotate both the DSI display output (`DSI-1`) and the capacitive touchscreen input (`Goodix Capacitive TouchScreen`) to landscape orientation (`left`).
 
 ---
 
-## Voraussetzungen
+## Prerequisites
 
-* Arduino Uno Q mit Debian Linux (oder ein anderes Linux-System mit aktivem `NetworkManager` / `nmcli`)
-* `sudo`-Rechte auf dem System
+* Arduino Uno Q running Debian Linux (Trixie) with `NetworkManager` (`nmcli`) and X11 (`Xorg`)
+* `sudo` privileges on the system
 
----
+### Transferring Files to the Arduino Uno Q
 
-## Installation & Ausführung
-
-### 1. Skript auf den Arduino Uno Q übertragen
-
-Falls auf dem Arduino Uno Q noch keine Internetverbindung besteht, lade [`setup_eduroam.sh`](./setup_eduroam.sh) auf deinen PC herunter und kopiere es z. B. per `scp` (über USB-Netzwerk/SSH) auf das Board:
+If the Arduino Uno Q does not have an active internet connection yet, download or clone this repository to your computer and copy the files to the board via `scp` (e.g., over USB network/SSH):
 
 ```bash
-scp setup_eduroam.sh <benutzer>@<ip-des-uno-q>:~/
+scp setup_eduroam.sh 90-monitor-rotate.conf <user>@<uno-q-ip>:~/
 ```
 
-*(Alternativ, falls das Board bereits über LAN oder USB-Tethering mit dem Internet verbunden ist, kann das Repository direkt mit `git clone` geladen werden.)*
+*(Alternatively, if the board is already connected to the internet via LAN or USB tethering, you can clone this repository directly on the board using `git clone`.)*
 
-### 2. Ausführungsrechte setzen (`chmod`)
+---
 
-Damit Linux die Datei als Programm ausführen darf, muss das Ausführbarkeits-Bit (`+x`) gesetzt werden:
+## 1. eduroam Wi-Fi Setup (`setup_eduroam.sh`)
+
+### Features
+
+* **Interactive prompts:** Only asks for your university email address and password.
+* **Secure password input:** Hidden password entry (`read -s`) that safely handles special characters (such as `!`, `$`, `'`, `"`).
+* **Automatic domain extraction:** Derives the `anonymous-identity` (e.g., `anonymous@hs-koblenz.de`) automatically from your email address.
+* **Automatic Wi-Fi interface detection:** Detects the active Wi-Fi interface via `nmcli` (falls back to `wlan0`).
+* **Clean profile creation:** Automatically removes any pre-existing `eduroam` profile before creating a new one to prevent duplicates.
+
+### Usage
+
+#### Step 1: Make the script executable (`chmod`)
+
+Set the executable permission bit (`+x`) so Linux allows running the script directly:
 
 ```bash
 chmod +x setup_eduroam.sh
 ```
 
-### 3. Skript starten
+#### Step 2: Run the script
 
 ```bash
 ./setup_eduroam.sh
 ```
 
-> **Alternative ohne `chmod`:** Du kannst das Skript auch direkt an `bash` übergeben (`bash setup_eduroam.sh`), dann ist `chmod +x` technisch nicht zwingend nötig – das Setzen von `chmod +x` ist aber der empfohlene Standard.
+> **Note:** Alternatively, you can invoke the script directly with `bash setup_eduroam.sh` without running `chmod +x` first, though setting `chmod +x` is the recommended standard.
 
-Folge anschließend den Anweisungen im Terminal:
-1. **E-Mail-Adresse** eingeben (z. B. `muster@hs-koblenz.de`)
-2. **Passwort** eingeben (die Eingabe wird aus Sicherheitsgründen **nicht** angezeigt)
-3. Falls gefragt, das `sudo`-Passwort des Linux-Benutzers eingeben.
+Follow the prompts in the terminal:
+1. Enter your **email address** (e.g., `user@hs-koblenz.de`).
+2. Enter your **password** (input is hidden for security).
+3. If prompted, enter the Linux user's `sudo` password.
 
----
+### Optional: Make Available System-Wide for All Users
 
-## Optional: Systemweit für alle Benutzer verfügbar machen
-
-Wenn das Skript dauerhaft als Befehl `setup-eduroam` für alle Benutzer auf dem Arduino Uno Q (z. B. für ein vorkonfiguriertes Labor-Image) hinterlegt werden soll:
+To install the script permanently as a global `setup-eduroam` command for all users on the Arduino Uno Q (e.g., when preparing a lab SD card image):
 
 ```bash
 sudo cp setup_eduroam.sh /usr/local/bin/setup-eduroam
 sudo chmod 755 /usr/local/bin/setup-eduroam
 ```
 
-Danach kann die Einrichtung jederzeit und aus jedem Verzeichnis heraus einfach mit folgendem Befehl gestartet werden:
+Afterwards, any user can configure eduroam from anywhere by simply running:
 
 ```bash
 setup-eduroam
@@ -71,17 +74,39 @@ setup-eduroam
 
 ---
 
-## Fehlerbehebung
+## 2. Screen & Touchscreen Rotation (`90-monitor-rotate.conf`)
 
-### Fehler: `$'\r': command not found` oder `bad interpreter`
-Falls das Skript unter Windows heruntergeladen oder bearbeitet wurde, enthält es möglicherweise Windows-Zeilenumbrüche (`CRLF` statt `LF`). Bereinige die Datei auf dem Arduino Uno Q mit:
+The file [`90-monitor-rotate.conf`](./90-monitor-rotate.conf) rotates the display (`DSI-1`) to the `left` and applies the matching coordinate transformation matrix (`0 -1 1 1 0 0 0 0 1`) to the `Goodix Capacitive TouchScreen` so touch inputs align accurately with the rotated screen.
+
+### Installation
+
+1. Ensure the target X11 configuration directory `/etc/X11/xorg.conf.d/` exists and copy the configuration file into it:
+
+   ```bash
+   sudo mkdir -p /etc/X11/xorg.conf.d/
+   sudo cp 90-monitor-rotate.conf /etc/X11/xorg.conf.d/90-monitor-rotate.conf
+   sudo chmod 644 /etc/X11/xorg.conf.d/90-monitor-rotate.conf
+   ```
+
+2. Restart the X server (display manager) or reboot the Arduino Uno Q for the changes to take effect:
+
+   ```bash
+   sudo reboot
+   ```
+
+---
+
+## Troubleshooting
+
+### Error: `$'\r': command not found` or `bad interpreter`
+If `setup_eduroam.sh` was downloaded or edited on Windows, it may contain Windows line endings (`CRLF` instead of `LF`). Convert the file on the Arduino Uno Q using:
 
 ```bash
 sed -i 's/\r$//' setup_eduroam.sh
 ```
 
-### Verbindung prüfen
-Mit folgendem Befehl kannst du jederzeit prüfen, ob die WLAN-Verbindung aktiv ist:
+### Verify Wi-Fi Connection Status
+You can check whether the `eduroam` Wi-Fi connection is active at any time with:
 
 ```bash
 nmcli device status
